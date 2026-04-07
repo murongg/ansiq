@@ -1,0 +1,26 @@
+[package]
+name = "ansiq-macros"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+repository.workspace = true
+homepage.workspace = true
+description = "Procedural macros for Ansiq, including the declarative view! tree builder."
+documentation = "https://docs.rs/ansiq-macros"
+readme = "../../README.md"
+keywords = ["tui", "terminal", "macro", "ui"]
+categories = ["command-line-interface", "development-tools::procedural-macro-helpers"]
+
+[lib]
+proc-macro = true
+
+[dependencies]
+proc-macro2 = "1"
+quote = "1"
+syn = { version = "2", features = ["full"] }
+
+[dev-dependencies]
+ansiq-core = { workspace = true }
+ansiq-widgets = { workspace = true }

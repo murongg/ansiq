@@ -1,0 +1,18 @@
+[package]
+name = "ansiq-layout"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+repository.workspace = true
+homepage.workspace = true
+description = "Layout measurement, shell slotting, and partial relayout support for Ansiq."
+documentation = "https://docs.rs/ansiq-layout"
+readme = "../../README.md"
+keywords = ["tui", "terminal", "layout", "ui"]
+categories = ["command-line-interface", "asynchronous"]
+
+[dependencies]
+ansiq-core = { workspace = true }
+unicode-width.workspace = true

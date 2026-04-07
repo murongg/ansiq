@@ -1,0 +1,18 @@
+[package]
+name = "ansiq-widgets"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+repository.workspace = true
+homepage.workspace = true
+description = "Widget builders and shell-oriented UI primitives for Ansiq."
+documentation = "https://docs.rs/ansiq-widgets"
+readme = "../../README.md"
+keywords = ["tui", "terminal", "widgets", "ui"]
+categories = ["command-line-interface", "asynchronous"]
+
+[dependencies]
+ansiq-core = { workspace = true }
+unicode-width.workspace = true

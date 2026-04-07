@@ -1,0 +1,17 @@
+/target/
+
+.DS_Store
+
+.idea/
+.vscode/
+
+*.swp
+*.swo
+*.tmp
+*.log
+
+.superpowers
+node_modules/
+dist/
+.next/
+docs

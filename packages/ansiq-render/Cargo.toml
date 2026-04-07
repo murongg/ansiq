@@ -1,0 +1,19 @@
+[package]
+name = "ansiq-render"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+repository.workspace = true
+homepage.workspace = true
+description = "Framebuffer, diff generation, and terminal patch emission for Ansiq."
+documentation = "https://docs.rs/ansiq-render"
+readme = "../../README.md"
+keywords = ["tui", "terminal", "rendering", "diff"]
+categories = ["command-line-interface", "asynchronous"]
+
+[dependencies]
+ansiq-core = { workspace = true }
+crossterm.workspace = true
+unicode-width.workspace = true

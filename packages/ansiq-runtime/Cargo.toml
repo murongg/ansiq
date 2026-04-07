@@ -1,0 +1,23 @@
+[package]
+name = "ansiq-runtime"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+repository.workspace = true
+homepage.workspace = true
+description = "Application loop, focus routing, subtree replacement, and redraw orchestration for Ansiq."
+documentation = "https://docs.rs/ansiq-runtime"
+readme = "../../README.md"
+keywords = ["tui", "terminal", "runtime", "async"]
+categories = ["command-line-interface", "asynchronous"]
+
+[dependencies]
+ansiq-core = { workspace = true }
+ansiq-layout = { workspace = true }
+ansiq-render = { workspace = true }
+ansiq-surface = { workspace = true }
+tokio.workspace = true
+crossterm.workspace = true
+unicode-width.workspace = true

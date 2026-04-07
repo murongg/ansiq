@@ -1,0 +1,22 @@
+[package]
+name = "ansiq-surface"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+repository.workspace = true
+homepage.workspace = true
+description = "Terminal session lifecycle, viewport policy, and inline history management for Ansiq."
+documentation = "https://docs.rs/ansiq-surface"
+readme = "../../README.md"
+keywords = ["tui", "terminal", "viewport", "surface"]
+categories = ["command-line-interface", "asynchronous"]
+
+[dependencies]
+ansiq-core = { workspace = true }
+ansiq-render = { workspace = true }
+crossterm.workspace = true
+futures-util.workspace = true
+tokio.workspace = true
+unicode-width.workspace = true

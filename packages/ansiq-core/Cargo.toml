@@ -1,0 +1,21 @@
+[package]
+name = "ansiq-core"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+repository.workspace = true
+homepage.workspace = true
+description = "Core reactive primitives, element contracts, styles, and shared runtime-facing types for Ansiq."
+documentation = "https://docs.rs/ansiq-core"
+readme = "../../README.md"
+keywords = ["tui", "terminal", "reactive", "ui"]
+categories = ["command-line-interface", "asynchronous"]
+
+[dependencies]
+tokio.workspace = true
+unicode-width.workspace = true
+
+[dev-dependencies]
+trybuild = "1.0"
