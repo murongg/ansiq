@@ -1,5 +1,6 @@
 [workspace]
 members = [
+    "packages/ansiq",
     "packages/ansiq-core",
     "packages/ansiq-macros",
     "packages/ansiq-runtime",
@@ -21,6 +22,7 @@ repository = "https://github.com/murongg/ansiq"
 homepage = "https://github.com/murongg/ansiq"
 
 [workspace.dependencies]
+ansiq = { version = "0.1.0", path = "packages/ansiq" }
 ansiq-core = { version = "0.1.0", path = "packages/ansiq-core" }
 ansiq-layout = { version = "0.1.0", path = "packages/ansiq-layout" }
 ansiq-macros = { version = "0.1.0", path = "packages/ansiq-macros" }

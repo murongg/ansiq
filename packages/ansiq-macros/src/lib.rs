@@ -1,4 +1,5 @@
 use proc_macro::TokenStream;
+use proc_macro_crate::{FoundCrate, crate_name};
 use proc_macro2::{Span, TokenStream as TokenStream2};
 use quote::quote;
 use syn::{
@@ -131,9 +132,56 @@ impl Child {
     fn expand(self) -> TokenStream2 {
         match self {
             Self::Node(node) => node.expand(),
-            Self::Expr(expr) => quote! { ::ansiq_core::IntoElement::into_element(#expr) },
-            Self::Text(text) => quote! { ::ansiq_core::Element::new_text(#text) },
+            Self::Expr(expr) => {
+                let core = core_path();
+                quote! { #core::IntoElement::into_element(#expr) }
+            }
+            Self::Text(text) => {
+                let core = core_path();
+                quote! { #core::Element::new_text(#text) }
+            }
         }
+    }
+}
+
+fn dependency_path(package: &str) -> TokenStream2 {
+    match crate_name(package) {
+        Ok(FoundCrate::Itself) => quote! { crate },
+        Ok(FoundCrate::Name(name)) => {
+            let ident = Ident::new(&name, Span::call_site());
+            quote! { ::#ident }
+        }
+        Err(_) => {
+            let ident = Ident::new(&package.replace('-', "_"), Span::call_site());
+            quote! { ::#ident }
+        }
+    }
+}
+
+fn ansiq_root() -> Option<TokenStream2> {
+    match crate_name("ansiq") {
+        Ok(FoundCrate::Itself) => Some(quote! { crate }),
+        Ok(FoundCrate::Name(name)) => {
+            let ident = Ident::new(&name, Span::call_site());
+            Some(quote! { ::#ident })
+        }
+        Err(_) => None,
+    }
+}
+
+fn core_path() -> TokenStream2 {
+    if let Some(ansiq) = ansiq_root() {
+        quote! { #ansiq::core }
+    } else {
+        dependency_path("ansiq-core")
+    }
+}
+
+fn widgets_path() -> TokenStream2 {
+    if let Some(ansiq) = ansiq_root() {
+        quote! { #ansiq::widgets }
+    } else {
+        dependency_path("ansiq-widgets")
     }
 }
 
@@ -169,12 +217,13 @@ impl Node {
     fn expand_box(self) -> TokenStream2 {
         let attrs = self.attrs;
         let children = self.children;
+        let widgets = widgets_path();
         let direction = attr_expr(&attrs, "direction")
             .and_then(expr_as_string)
             .unwrap_or_else(|| "column".to_string());
         let mut builder = match direction.as_str() {
-            "row" => quote! { ::ansiq_widgets::Box::row() },
-            _ => quote! { ::ansiq_widgets::Box::column() },
+            "row" => quote! { #widgets::Box::row() },
+            _ => quote! { #widgets::Box::column() },
         };
 
         if let Some(gap) = attr_expr(&attrs, "gap") {
@@ -192,15 +241,17 @@ impl Node {
     fn expand_text(self) -> TokenStream2 {
         let attrs = self.attrs;
         let children = self.children;
+        let widgets = widgets_path();
         let content = content_expr(&attrs, &children).unwrap_or_else(|| quote! { "" });
-        finish_element(quote! { ::ansiq_widgets::Text::new(#content) }, &attrs)
+        finish_element(quote! { #widgets::Text::new(#content) }, &attrs)
     }
 
     fn expand_paragraph(self) -> TokenStream2 {
         let attrs = self.attrs;
         let children = self.children;
+        let widgets = widgets_path();
         let content = content_expr(&attrs, &children).unwrap_or_else(|| quote! { "" });
-        let mut builder = quote! { ::ansiq_widgets::Paragraph::new(#content) };
+        let mut builder = quote! { #widgets::Paragraph::new(#content) };
         if let Some(alignment) = attr_expr(&attrs, "alignment") {
             builder = quote! { #builder .alignment(#alignment) };
         }
@@ -227,18 +278,19 @@ impl Node {
 
     fn expand_rich_text(self) -> TokenStream2 {
         let attrs = self.attrs;
+        let core = core_path();
+        let widgets = widgets_path();
         let block = attr_expr(&attrs, "block")
             .map(|expr| quote! { #expr })
-            .unwrap_or_else(|| {
-                quote! { ::ansiq_core::HistoryBlock { lines: ::std::vec::Vec::new() } }
-            });
-        finish_element(quote! { ::ansiq_widgets::RichText::new(#block) }, &attrs)
+            .unwrap_or_else(|| quote! { #core::HistoryBlock { lines: ::std::vec::Vec::new() } });
+        finish_element(quote! { #widgets::RichText::new(#block) }, &attrs)
     }
 
     fn expand_pane(self) -> TokenStream2 {
         let attrs = self.attrs;
         let children = self.children;
-        let mut builder = quote! { ::ansiq_widgets::Pane::new() };
+        let widgets = widgets_path();
+        let mut builder = quote! { #widgets::Pane::new() };
         if let Some(title) = attr_expr(&attrs, "title") {
             builder = quote! { #builder .title(#title) };
         }
@@ -252,7 +304,8 @@ impl Node {
     fn expand_block(self) -> TokenStream2 {
         let attrs = self.attrs;
         let children = self.children;
-        let mut builder = quote! { ::ansiq_widgets::Block::new() };
+        let widgets = widgets_path();
+        let mut builder = quote! { #widgets::Block::new() };
         if let Some(title) = attr_expr(&attrs, "title") {
             builder = quote! { #builder .title(#title) };
         }
@@ -298,10 +351,11 @@ impl Node {
 
     fn expand_list(self) -> TokenStream2 {
         let attrs = self.attrs;
+        let widgets = widgets_path();
         let items = attr_expr(&attrs, "items")
             .map(|expr| quote! { #expr })
             .unwrap_or_else(|| quote! { ::std::vec::Vec::<::std::string::String>::new() });
-        let mut builder = quote! { ::ansiq_widgets::List::new(#items) };
+        let mut builder = quote! { #widgets::List::new(#items) };
         if let Some(items) = attr_expr(&attrs, "items") {
             builder = quote! { #builder .items(#items) };
         }
@@ -319,10 +373,11 @@ impl Node {
 
     fn expand_tabs(self) -> TokenStream2 {
         let attrs = self.attrs;
+        let widgets = widgets_path();
         let titles = attr_expr(&attrs, "titles")
             .map(|expr| quote! { #expr })
             .unwrap_or_else(|| quote! { ::std::vec::Vec::<::std::string::String>::new() });
-        let mut builder = quote! { ::ansiq_widgets::Tabs::new(#titles) };
+        let mut builder = quote! { #widgets::Tabs::new(#titles) };
         if let Some(block) = attr_expr(&attrs, "block") {
             builder = quote! { #builder .block(#block) };
         }
@@ -352,7 +407,8 @@ impl Node {
 
     fn expand_gauge(self) -> TokenStream2 {
         let attrs = self.attrs;
-        let mut builder = quote! { ::ansiq_widgets::Gauge::new() };
+        let widgets = widgets_path();
+        let mut builder = quote! { #widgets::Gauge::new() };
         if let Some(block) = attr_expr(&attrs, "block") {
             builder = quote! { #builder .block(#block) };
         }
@@ -376,12 +432,14 @@ impl Node {
 
     fn expand_clear(self) -> TokenStream2 {
         let attrs = self.attrs;
-        finish_element(quote! { ::ansiq_widgets::Clear::new() }, &attrs)
+        let widgets = widgets_path();
+        finish_element(quote! { #widgets::Clear::new() }, &attrs)
     }
 
     fn expand_line_gauge(self) -> TokenStream2 {
         let attrs = self.attrs;
-        let mut builder = quote! { ::ansiq_widgets::LineGauge::new() };
+        let widgets = widgets_path();
+        let mut builder = quote! { #widgets::LineGauge::new() };
         if let Some(block) = attr_expr(&attrs, "block") {
             builder = quote! { #builder .block(#block) };
         }
@@ -414,6 +472,8 @@ impl Node {
 
     fn expand_table(self) -> TokenStream2 {
         let attrs = self.attrs;
+        let core = core_path();
+        let widgets = widgets_path();
         let rows = attr_expr(&attrs, "rows")
             .map(|expr| quote! { #expr })
             .unwrap_or_else(
@@ -421,8 +481,8 @@ impl Node {
             );
         let widths = attr_expr(&attrs, "widths")
             .map(|expr| quote! { #expr })
-            .unwrap_or_else(|| quote! { ::std::vec::Vec::<::ansiq_core::Constraint>::new() });
-        let mut builder = quote! { ::ansiq_widgets::Table::new(#rows, #widths) };
+            .unwrap_or_else(|| quote! { ::std::vec::Vec::<#core::Constraint>::new() });
+        let mut builder = quote! { #widgets::Table::new(#rows, #widths) };
         if let Some(block) = attr_expr(&attrs, "block") {
             builder = quote! { #builder .block(#block) };
         }
@@ -460,7 +520,8 @@ impl Node {
 
     fn expand_sparkline(self) -> TokenStream2 {
         let attrs = self.attrs;
-        let mut builder = quote! { ::ansiq_widgets::Sparkline::new() };
+        let widgets = widgets_path();
+        let mut builder = quote! { #widgets::Sparkline::new() };
         if let Some(values) = attr_expr(&attrs, "values") {
             builder = quote! { #builder .values(#values) };
         }
@@ -472,7 +533,8 @@ impl Node {
 
     fn expand_bar_chart(self) -> TokenStream2 {
         let attrs = self.attrs;
-        let mut builder = quote! { ::ansiq_widgets::BarChart::new() };
+        let widgets = widgets_path();
+        let mut builder = quote! { #widgets::BarChart::new() };
         if let Some(bars) = attr_expr(&attrs, "bars") {
             builder = quote! { #builder .bars(#bars) };
         }
@@ -487,8 +549,9 @@ impl Node {
 
     fn expand_chart(self) -> TokenStream2 {
         let attrs = self.attrs;
+        let widgets = widgets_path();
         let datasets = attr_expr(&attrs, "datasets");
-        let mut builder = quote! { ::ansiq_widgets::Chart::new() };
+        let mut builder = quote! { #widgets::Chart::new() };
         if let Some(min_y) = attr_expr(&attrs, "min_y") {
             builder = quote! { #builder .min_y(#min_y) };
         }
@@ -515,8 +578,9 @@ impl Node {
 
     fn expand_canvas(self) -> TokenStream2 {
         let attrs = self.attrs;
+        let widgets = widgets_path();
         let cells = attr_expr(&attrs, "cells");
-        let mut builder = quote! { ::ansiq_widgets::Canvas::new() };
+        let mut builder = quote! { #widgets::Canvas::new() };
         if let Some(width) = attr_expr(&attrs, "width") {
             let height = attr_expr(&attrs, "height")
                 .map(|expr| quote! { #expr })
@@ -539,7 +603,8 @@ impl Node {
 
     fn expand_monthly(self) -> TokenStream2 {
         let attrs = self.attrs;
-        let mut builder = quote! { ::ansiq_widgets::Monthly::new() };
+        let widgets = widgets_path();
+        let mut builder = quote! { #widgets::Monthly::new() };
         if let Some(year) = attr_expr(&attrs, "year") {
             builder = quote! { #builder .year(#year) };
         }
@@ -554,10 +619,12 @@ impl Node {
 
     fn expand_scrollbar(self) -> TokenStream2 {
         let attrs = self.attrs;
+        let core = core_path();
+        let widgets = widgets_path();
         let orientation = attr_expr(&attrs, "orientation")
             .map(|expr| quote! { #expr })
-            .unwrap_or_else(|| quote! { ::ansiq_core::ScrollbarOrientation::VerticalRight });
-        let mut builder = quote! { ::ansiq_widgets::Scrollbar::new(#orientation) };
+            .unwrap_or_else(|| quote! { #core::ScrollbarOrientation::VerticalRight });
+        let mut builder = quote! { #widgets::Scrollbar::new(#orientation) };
         if let Some(position) = attr_expr(&attrs, "position") {
             builder = quote! { #builder .position(#position) };
         }
@@ -606,7 +673,8 @@ impl Node {
     fn expand_scroll_view(self) -> TokenStream2 {
         let attrs = self.attrs;
         let children = self.children;
-        let mut builder = quote! { ::ansiq_widgets::ScrollView::new() };
+        let widgets = widgets_path();
+        let mut builder = quote! { #widgets::ScrollView::new() };
         if let Some(follow_bottom) = attr_expr(&attrs, "follow_bottom") {
             builder = quote! { #builder .follow_bottom(#follow_bottom) };
         }
@@ -626,16 +694,15 @@ impl Node {
     fn expand_streaming_text(self) -> TokenStream2 {
         let attrs = self.attrs;
         let children = self.children;
+        let widgets = widgets_path();
         let content = content_expr(&attrs, &children).unwrap_or_else(|| quote! { "" });
-        finish_element(
-            quote! { ::ansiq_widgets::StreamingText::new(#content) },
-            &attrs,
-        )
+        finish_element(quote! { #widgets::StreamingText::new(#content) }, &attrs)
     }
 
     fn expand_input(self) -> TokenStream2 {
         let attrs = self.attrs;
-        let mut builder = quote! { ::ansiq_widgets::Input::new() };
+        let widgets = widgets_path();
+        let mut builder = quote! { #widgets::Input::new() };
         if let Some(value) = attr_expr(&attrs, "value") {
             builder = quote! { #builder .value(#value) };
         }
@@ -653,11 +720,12 @@ impl Node {
 
     fn expand_status_bar(self) -> TokenStream2 {
         let attrs = self.attrs;
+        let widgets = widgets_path();
         let content = attr_expr(&attrs, "text")
             .or_else(|| attr_expr(&attrs, "content"))
             .map(|expr| quote! { #expr })
             .unwrap_or_else(|| quote! { "" });
-        finish_element(quote! { ::ansiq_widgets::StatusBar::new(#content) }, &attrs)
+        finish_element(quote! { #widgets::StatusBar::new(#content) }, &attrs)
     }
 
     fn expand_custom_component(self) -> TokenStream2 {
@@ -669,7 +737,8 @@ impl Node {
         }
 
         let name = self.name;
-        quote! { ::ansiq_core::component_with_cx(stringify!(#name), #name) }
+        let core = core_path();
+        quote! { #core::component_with_cx(stringify!(#name), #name) }
     }
 }
 
