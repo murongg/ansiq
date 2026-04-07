@@ -1,0 +1,23 @@
+[package]
+name = "ansiq"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+repository.workspace = true
+homepage.workspace = true
+description = "Thin umbrella crate and default entry point for building terminal applications with Ansiq."
+documentation = "https://docs.rs/ansiq"
+readme = "../../README.md"
+keywords = ["tui", "terminal", "ui", "async"]
+categories = ["command-line-interface", "asynchronous"]
+
+[dependencies]
+ansiq-core = { workspace = true }
+ansiq-layout = { workspace = true }
+ansiq-macros = { workspace = true }
+ansiq-render = { workspace = true }
+ansiq-runtime = { workspace = true }
+ansiq-surface = { workspace = true }
+ansiq-widgets = { workspace = true }
